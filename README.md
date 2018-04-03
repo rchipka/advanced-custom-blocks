@@ -12,7 +12,7 @@ Once a block is targeted, the field group will appear when editing the targeted 
 Where the fields appear on the post edit screen is currently determined by the field group's "Location" setting.
 
  * Normal - Fields will appear inside the block, below all other nested content/blocks
- * High (below title) - Fields will appear the block, above all other nested content/blocks
+ * High (below title) - Fields will appear inside the block, above all other nested content/blocks
  * Side - Fields will appear in the side bar settings under the "Block" tab
  
 ## Usage

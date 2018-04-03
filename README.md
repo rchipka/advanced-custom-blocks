@@ -21,6 +21,8 @@ The plugin will save the field data to the target blocks "attributes" data.
 
 You can customize the content generated based on your fields by creating a custom block type and targeting it, or by injecting your field content into the content of an existing block type.
 
+*Note:* You will need to replace all occurrences of `wp.hooks` with `wp.acf_hooks` within the file `/plugins/advanced-custom-fields-pro/assets/js/acf-input.min.js`
+
 ## Filters
 
 `acf/block_content`

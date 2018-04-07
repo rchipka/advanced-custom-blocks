@@ -279,5 +279,5 @@ add_action('admin_footer', function () {
   }
 })(jQuery);
 </script>
-<?
+<?php
 }, 0);

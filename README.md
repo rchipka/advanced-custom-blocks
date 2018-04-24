@@ -1,5 +1,6 @@
-# ACF Gutenburg
- ACF integrations for Gutenburg blocks
+# Advanced Custom Blocks
+
+ACF integrations for Gutenburg blocks
 
 ## What does it do?
 

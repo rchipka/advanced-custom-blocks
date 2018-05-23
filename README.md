@@ -39,3 +39,9 @@ function ($content, $block, $fields) {
 function ($attributes, $block, $fields) {
   return $attributes
 }
+
+
+## Todo
+
+ * Inject sidebar (block settings) fields via new Plugins API
+ * Modify block content using new ServerSideRender component instead of requiring Gutenberg Block Partials?

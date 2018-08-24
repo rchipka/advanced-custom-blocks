@@ -16,7 +16,7 @@ Where the fields appear on the post edit screen is currently determined by the f
  * High (below title) - Fields will appear inside the block, above all other nested content/blocks
  * Side - Fields will appear in the side bar settings under the "Block" tab
  
-## Usage
+## Usage (outdated as of August 23rd 2018)
 
 The plugin will save the field data to the target blocks "attributes" data.
 

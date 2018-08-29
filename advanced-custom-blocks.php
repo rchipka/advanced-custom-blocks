@@ -4,7 +4,7 @@
 * Plugin Name: Advanced Custom Blocks
 * Plugin URI: https://github.com/rchipka/advanced-custom-blocks
 * Description: ACF for Gutenberg blocks
-* Version: 2.0.1
+* Version: 2.0.2
 * Author: Robbie Chipka
 * Author URI: https://github.com/rchipka
 * GitHub Plugin URI: https://github.com/rchipka/advanced-custom-blocks
@@ -175,7 +175,6 @@ add_action( 'init', function () {
           acf_enable_cache();
         }
         
-
         return $output;
       },
     ) );
@@ -222,7 +221,7 @@ add_action('admin_notices', function () {
       fieldGroupForms = {},
       field_groups = <?php echo json_encode(acf_gb_get_block_field_groups()); ?>;
 
-  console.log(field_groups);
+  console.log('ACF Field Groups:', field_groups);
 
   function loadACF(callback) {
     $.ajax({
@@ -240,45 +239,7 @@ add_action('admin_notices', function () {
     });
   }
 
-  wp.apiFetch.use(function (options, next) { 
-    if (options.path && /block-renderer\/acf/.test(options.path)) {
-      var res = next(options);
-
-      res.then(function () {
-        setTimeout(function () {
-          $('[data-block-id]').each(function () {
-            acf.do_action('ready', $(this));
-          });
-        }, 500);
-      });
-
-      return res;
-    }
-
-    if (options.method !== 'POST' || !(options.body instanceof FormData)) {
-      return next(options);
-    }
-
-    $('.acf-block-group-content').each(function () {
-      var form = this;
-
-      // var data = $.param(acf.serialize($(this)));
-      // console.log(data);
-
-      (new FormData(this)).forEach(function (val, key) {
-        // var val = data[key];
-        console.log('Saving ACF field', key, val);
-
-        options.body.append(key, val);
-
-        key = key.replace(/^acf/, 'acf_blocks[' + $(form).data('block-id') + ']');
-        console.log('Saving ACF field', key, val);
-        options.body.append(key, val);
-      });
-    });
-
-    return next(options);
-  });
+  var registeredCount = 0;
 
   field_groups.forEach(function (group) {
     var slug = 'acf/' + group.block_name;
@@ -321,7 +282,13 @@ add_action('admin_notices', function () {
         var children = [];
 
         if (group.style === 'default') {
-          children.push(el('div', { className: ['acf-block-group-heading'] }, [group.title]));
+          children.push(el('div', { className: 'acf-block-group-heading' }, [
+            el('span', {
+              className: 'dashicons dashicons-' + (group.block_icon || 'feedback'),
+            }),
+            ' ',
+            group.title
+          ]));
         }
 
         // setTimeout(function () {
@@ -340,6 +307,47 @@ add_action('admin_notices', function () {
       },
     })
   });
+
+  console.log('Registered' + registeredCount + ' ACF Blocks');
+  wp.apiFetch.use(function (options, next) { 
+    if (options.path && /block-renderer\/acf/.test(options.path)) {
+      var res = next(options);
+
+      res.then(function () {
+        setTimeout(function () {
+          $('[data-block-id]').each(function () {
+            acf.do_action('ready', $(this));
+          });
+        }, 500);
+      });
+
+      return res;
+    }
+
+    if (options.method !== 'POST' || !(options.body instanceof FormData)) {
+      return next(options);
+    }
+
+    $('.acf-block-group-content').each(function () {
+      var form = this;
+
+      // var data = $.param(acf.serialize($(this)));
+      // console.log(data);
+
+      (new FormData(this)).forEach(function (val, key) {
+        // var val = data[key];
+        console.log('Saving ACF field', key, val);
+
+        options.body.append(key, val);
+
+        key = key.replace(/^acf/, 'acf_blocks[' + $(form).data('block-id') + ']');
+        console.log('Saving ACF field', key, val);
+        options.body.append(key, val);
+      });
+    });
+
+    return next(options);
+  });
 })(jQuery);
 </script>
 <style>
@@ -349,8 +357,9 @@ add_action('admin_notices', function () {
 .acf-block-group-heading {
   background-color: #EEE;
   padding: 0.25em 0.5em;
-  margin-left: -0.5em;
-  margin-right: -0.5em;
+}
+.acf-block-group-heading > .dashicons {
+  vertical-align: text-top;
 }
 .acf-block-group-content {
 }

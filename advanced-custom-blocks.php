@@ -87,6 +87,9 @@ add_filter('acf/load_field', function ($field) {
   if ($value) {
     $field['value'] = $value;
   }
+  elseif ( $field['type'] == 'image' ) {
+    $field['value'] = wp_get_attachment_image_src($value);
+  }
 
   // error_log('load field ' . $field['name']. $field['key'] . '_' . $GLOBALS['ACF_BLOCK_ID'] . print_r($value, 1));
 

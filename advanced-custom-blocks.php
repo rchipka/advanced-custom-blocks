@@ -367,5 +367,5 @@ add_action('admin_notices', function () {
 .acf-block-group-content {
 }
 </style>
-<?
+<?php
 }, 0);

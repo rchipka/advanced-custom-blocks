@@ -4,11 +4,32 @@
 * Plugin Name: Advanced Custom Blocks
 * Plugin URI: https://github.com/rchipka/advanced-custom-blocks
 * Description: ACF for Gutenberg blocks
-* Version: 2.0.2
+* Version: 2.1.0
 * Author: Robbie Chipka
 * Author URI: https://github.com/rchipka
 * GitHub Plugin URI: https://github.com/rchipka/advanced-custom-blocks
 */
+
+global $acb_block;
+global $acb_current_field;
+
+function acb_current_block($key = null) {
+  global $acb_block;
+
+  if (!$key) {
+    if (is_array($acb_block)) {
+      return $acb_block;
+    }
+
+    return [];
+  }
+  
+  if ($key === 'name') {
+    $key = 'block_name';
+  }
+
+  return acb_current_block()[$key];
+}
 
 add_filter('acf/location/rule_types', function ( $choices ) {
     $choices['Gutenberg']['block_name'] = 'Block Name';
@@ -24,11 +45,13 @@ add_filter('acf/location/rule_values/block_name', function ( $choices, $data ) {
 }, 10, 2);
 
 add_filter('acf/location/rule_match/block_name', function ( $match, $rule, $options ) {
+  global $acb_block;
+
   if (empty($rule['value'])) {
     return true;
   }
 
-  return ($rule['operator'] === '==') === ($GLOBALS['ACF_BLOCK_NAME'] == $rule['value']);
+  return ($rule['operator'] === '==') === (acb_current_block('name') == $rule['value']);
 }, 10, 3);
 
 add_filter('acf/location/screen', function ($screen, $field_group) {
@@ -50,12 +73,63 @@ add_action('save_post', function ($post_id) {
 
   // error_log(print_r($_POST['acf_blocks'], 1));
 
+  
   foreach ($_POST['acf_blocks'] as $block_id => $fields) {
-    foreach ($fields as $key => $value) {
-      update_post_meta($post_id, $key . '_' . $block_id, $value);
+    foreach ($fields as $field_key => $meta_value) {
+      $field = get_field_object($field_key);
+      delete_post_meta($post_id, $field['name']);
+
+      update_field($field_key, $meta_value, $post_id);
+    }
+  }
+
+  foreach ($_POST['acf_blocks'] as $block_id => $fields) {
+    foreach ($fields as $field_key => $meta_value) {
+      $field = get_field_object($field_key);
+
+      add_post_meta($post_id, $field['name'], $meta_value, false);
     }
   }
 }, 10, 1);
+
+add_filter('acf/load_field', function ($field) {
+  global $acb_current_field;
+
+  if (!acb_current_block('block_id') || !acb_current_block('post_id')) {
+    return $field;
+  }
+
+  $value = acb_current_block('acf_fields');
+
+  if ($value) {
+    if (isset($value[$field['key']])) {
+      $value = $value[$field['key']];
+    }
+
+    if (isset($field['sub_fields'])) {
+      $acb_current_field = $field;
+      $value = array_values($value);
+    }
+
+    $field['value'] = $value;
+  }
+
+  // error_log('load field ' . $field['name']. $field['key'] . '_' . $GLOBALS['ACF_BLOCK_ID'] . print_r($value, 1));
+
+  return $field;
+}, 10, 1);
+
+// add_filter('acf/load_value', function ($value, $post_id, $field) {
+//   global $acb_current_field;
+
+//   if ($acb_current_field && isset($acb_current_field['value']) && $field['parent'] === $acb_current_field['ID']) {
+//     // print_r($acb_current_field);
+//     // return 'yes';
+//     return $acb_current_field['value'][0][$field['key']];
+//   }
+
+//   return $value;
+// }, 10, 3);
 
 add_action('acf/render_field_group_settings', function ($field_group) {
   acf_render_field_wrap(array(
@@ -77,36 +151,6 @@ add_action('acf/render_field_group_settings', function ($field_group) {
   ));
 }, 10, 1);
 
-add_filter('acf/load_field', function ($field) {
-  if (!$GLOBALS['ACF_BLOCK_ID'] || !$GLOBALS['ACF_POST_ID']) {
-    return $field;
-  }
-
-  $value = get_post_meta($GLOBALS['ACF_POST_ID'], $field['key'] . '_' . $GLOBALS['ACF_BLOCK_ID'], true);
-
-  if ($value) {
-    $field['value'] = $value;
-  }
-  elseif ( $field['type'] == 'image' ) {
-    $field['value'] = wp_get_attachment_image_src($value);
-  }
-
-  // error_log('load field ' . $field['name']. $field['key'] . '_' . $GLOBALS['ACF_BLOCK_ID'] . print_r($value, 1));
-
-  return $field;
-}, 10, 1);
-
-
-// add_filter('acf/load_value', function ($value, $post_id, $field) {
-//   error_log('load_field'. json_encode($field['name']));
-//   if (!$GLOBALS['ACF_BLOCK_ID']) {
-//     return $value;
-//   }
-
-//   error_log($post_id . $field['key'] . '_' . $GLOBALS['ACF_BLOCK_ID']);
-//   return get_post_meta($post_id, $field['key'] . '_' . $GLOBALS['ACF_BLOCK_ID'], true) ?: $value;
-// }, 10, 3);
-
 
 add_action( 'init', function () {
   if (!function_exists('register_block_type')) {
@@ -116,10 +160,6 @@ add_action( 'init', function () {
   foreach (acf_gb_get_block_field_groups() as $group) {
     register_block_type( 'acf/' . $group['block_name'], array(
       'attributes'      => array(
-        'acf_fields' => array(
-          'type'    => 'string',
-          'default' => '',
-        ),
         'post_id' => array(
           'type'    => 'number',
           'default' => 0,
@@ -132,13 +172,18 @@ add_action( 'init', function () {
           'type'    => 'string',
           'default' => $group['block_name'],
         ),
+        'acf_fields' => array(
+          'type'    => 'object',
+          'default' => [],
+        ),
         'acf_field_group' => array(
-          'type'    => 'string',
-          'default' => '',
+          'type'    => 'number',
+          'default' => 0,
         ),
       ),
       'render_callback' => function ($attributes) {
         global $post;
+        global $acb_block;
 
         $output = '';
 
@@ -152,27 +197,37 @@ add_action( 'init', function () {
           acf_disable_cache();
         }
 
-        $field_group = json_decode($attributes['acf_field_group'], true);
+        if (isset($_REQUEST['attributes']) && isset($_REQUEST['attributes']['acf_fields'])) {
+          $attributes['acf_fields'] = $_REQUEST['attributes']['acf_fields'];
+        }
 
-        $GLOBALS['ACF_POST_ID'] = $attributes['post_id'];
-        $GLOBALS['ACF_BLOCK_ID'] = $attributes['block_id'];
-        $GLOBALS['ACF_BLOCK_NAME'] = $attributes['block_name'];
+        $acb_block = $attributes;
 
         if ($_GET['context'] === 'edit') {
           ob_start();
-          $fields = acf_get_fields($field_group);
+          $fields = acf_get_fields($attributes['acf_field_group']);
           acf_render_fields($fields, $attributes['post_id']);
           $output .= ob_get_contents();
           ob_end_clean();
         } else {
-          $output = apply_filters('acf/render_block', $output, $attributes);
-          $output = apply_filters('acf/render_block/name=' . $attributes['block_name'], $output, $attributes);
+          ob_start();
+
+          do_action('acf/before_render_block', $attributes);
+          do_action('acf/before_render_block/name=' . $attributes['block_name'], $attributes);
+
+          do_action('acf/render_block', $attributes);
+          do_action('acf/render_block/name=' . $attributes['block_name'], $attributes);
+
+          do_action('acf/after_render_block', $attributes);
+          do_action('acf/after_render_block/name=' . $attributes['block_name'], $attributes);
+          
+          $output .= ob_get_contents();
+          ob_end_clean();
         }
 
         reset_rows();
         wp_reset_postdata();
-        $GLOBALS['ACF_BLOCK_ID'] = null;
-        $GLOBALS['ACF_BLOCK_NAME'] = null;
+        $acb_block = null;
 
         if ($cache_active) {
           acf_enable_cache();
@@ -185,6 +240,8 @@ add_action( 'init', function () {
 });
 
 function acf_gb_get_block_field_groups() {
+  global $acb_block;
+
   $groups = [];
 
   if ($_REQUEST['post']) {
@@ -192,7 +249,9 @@ function acf_gb_get_block_field_groups() {
   }
 
   foreach (acf_get_field_groups() as $group) {
-    $GLOBALS['ACF_BLOCK_NAME'] = $is_block = ($group['block_name']);
+    $acb_block = [
+      'block_name' => ($is_block = ($group['block_name'])),
+    ];
 
     if ($is_block) {
 
@@ -201,7 +260,7 @@ function acf_gb_get_block_field_groups() {
       }
     }
 
-    $GLOBALS['ACF_BLOCK_NAME'] = null;
+    $acb_block = null;
   }
 
   if ($_REQUEST['post']) {
@@ -242,8 +301,6 @@ add_action('admin_notices', function () {
     });
   }
 
-  var registeredCount = 0;
-
   field_groups.forEach(function (group) {
     var slug = 'acf/' + group.block_name;
 
@@ -274,8 +331,8 @@ add_action('admin_notices', function () {
           el(wp.components.ServerSideRender, {
             block: slug,
             attributes: {
-              acf_fields: '',
-              acf_field_group: JSON.stringify(group),
+              acf_fields: block.attributes.acf_fields,
+              acf_field_group: group.ID,
               post_id: <?php echo json_encode(intval(get_the_ID())); ?>,
               block_id: block_id,
             },
@@ -294,6 +351,15 @@ add_action('admin_notices', function () {
           ]));
         }
 
+        var selector = 'form[data-block-id="' + block_id + '"]';
+
+        if ($(selector).length < 1) {
+          $(document).on('acb_save_fields', function () {
+            block.setAttributes({
+              acf_fields: acf.serialize($(selector))['acf'],
+            });
+          });
+        }
         // setTimeout(function () {
         //   acf.do_action('ready', $('[data-block-id="' + block_id + '"]'));
         // }, 500);
@@ -304,14 +370,14 @@ add_action('admin_notices', function () {
           className: 'acf-block-group-wrapper',
         }, children);
       },
-      save: function () {
-        // console.log('SAVE');
+      save: function (block) {
+        // console.log('SAVE', block);
+
         return null;
       },
     })
   });
 
-  console.log('Registered' + registeredCount + ' ACF Blocks');
   wp.apiFetch.use(function (options, next) { 
     if (options.path && /block-renderer\/acf/.test(options.path)) {
       var res = next(options);
@@ -325,6 +391,25 @@ add_action('admin_notices', function () {
       });
 
       return res;
+    }
+
+    if ((options.method === 'PUT' || options.method === 'POST') && options.data && options.data.content) {
+      $(document).trigger('acb_save_fields');
+
+      return new Promise(function (resolve, reject) {
+        var interval = setInterval(function () {
+          if ($('#editor .components-placeholder').length < 1) {
+            doRequest();
+          }
+        }, 150);
+
+        var doRequest = function () {
+          clearInterval(interval);
+          next(options).then(resolve).catch(reject);
+        };
+
+        setTimeout(doRequest, 1500);
+      });
     }
 
     if (options.method !== 'POST' || !(options.body instanceof FormData)) {
@@ -367,5 +452,5 @@ add_action('admin_notices', function () {
 .acf-block-group-content {
 }
 </style>
-<?php
+<?
 }, 0);

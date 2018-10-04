@@ -4,7 +4,7 @@
 * Plugin Name: Advanced Custom Blocks
 * Plugin URI: https://github.com/rchipka/advanced-custom-blocks
 * Description: ACF for Gutenberg blocks
-* Version: 2.1.0
+* Version: 2.1.1
 * Author: Robbie Chipka
 * Author URI: https://github.com/rchipka
 * GitHub Plugin URI: https://github.com/rchipka/advanced-custom-blocks
@@ -77,9 +77,14 @@ add_action('save_post', function ($post_id) {
   foreach ($_POST['acf_blocks'] as $block_id => $fields) {
     foreach ($fields as $field_key => $meta_value) {
       $field = get_field_object($field_key);
+
       delete_post_meta($post_id, $field['name']);
 
       update_field($field_key, $meta_value, $post_id);
+
+      // if (isset($field['sub_fields'])) {
+      //   update_post_meta($post_id, $field['key'] . '-' . $block_id, get_field($field_key, $post_id));
+      // }
     }
   }
 
@@ -87,13 +92,23 @@ add_action('save_post', function ($post_id) {
     foreach ($fields as $field_key => $meta_value) {
       $field = get_field_object($field_key);
 
+      if (isset($field['sub_fields'])) {
+        continue;
+      }
+
       add_post_meta($post_id, $field['name'], $meta_value, false);
     }
   }
 }, 10, 1);
 
+$acb_is_updating_fields = false;
 add_filter('acf/load_field', function ($field) {
+  global $acb_is_updating_fields;
   global $acb_current_field;
+
+  if ($acb_is_updating_fields) {
+    return $field;
+  }
 
   if (!acb_current_block('block_id') || !acb_current_block('post_id')) {
     return $field;
@@ -102,13 +117,19 @@ add_filter('acf/load_field', function ($field) {
   $value = acb_current_block('acf_fields');
 
   if ($value) {
-    if (isset($value[$field['key']])) {
-      $value = $value[$field['key']];
+    if (isset($field['sub_fields'])) {
+      $acb_is_updating_fields = true;
+
+      // $value = get_post_meta(acb_current_block('post_id'), $field['key'] . '-' . acb_current_block('block_id'), true);
+      // update_field($field['key'], $value, acb_current_block('post_id'));
+
+      acf_save_post( acb_current_block('post_id'), $value );
+
+      $acb_is_updating_fields = false;
     }
 
-    if (isset($field['sub_fields'])) {
-      $acb_current_field = $field;
-      $value = array_values($value);
+    if (isset($value[$field['key']])) {
+      $value = $value[$field['key']];
     }
 
     $field['value'] = $value;
@@ -146,10 +167,57 @@ add_action('acf/render_field_group_settings', function ($field_group) {
     'instructions'  => '',
     'type'      => 'text',
     'name'      => 'block_icon',
+    'placeholder' => 'Dashicons class name',
     'prefix'    => 'acf_field_group',
     'value'     => $field_group['block_icon'],
   ));
+
+  acf_render_field_wrap(array(
+    'label'     => 'Block Category',
+    'instructions'  => '',
+    'type'      => 'text',
+    'name'      => 'block_category',
+    'prefix'    => 'acf_field_group',
+    'placeholder' => 'Widgets',
+    'value'     => $field_group['block_category'],
+  ));
 }, 10, 1);
+
+function my_plugin_block_categories( $categories, $post ) {
+  if ( $post->post_type !== 'post' ) {
+    return $categories;
+  }
+  return array_merge(
+    $categories,
+    array(
+      array(
+        'slug' => 'my-category',
+        'title' => __( 'My category', 'my-plugin' ),
+      ),
+    )
+  );
+}
+
+add_filter( 'block_categories', function ($block_categories, $post) {
+  $block_category_slugs = wp_list_pluck($block_categories, 'slug');
+
+  setup_postdata($post);
+
+  foreach (wp_list_pluck(acf_gb_get_block_field_groups(), 'block_category') as $category) {
+    $slug = sanitize_title($category);
+
+    if (!in_array($slug, $block_category_slugs)) {
+      $block_categories[] = [
+        'slug' => $slug,
+        'title' => $category
+      ];
+    }
+  }
+
+  wp_reset_postdata();
+
+  return $block_categories;
+}, 5, 2 );
 
 
 add_action( 'init', function () {
@@ -187,7 +255,9 @@ add_action( 'init', function () {
 
         $output = '';
 
-        if ($attributes['post_id']) {
+        if ($post instanceof WP_Post && $post->ID) {
+          $attributes['post_id'] = $post->ID;
+        } else if ($attributes['post_id']) {
           setup_postdata($post = get_post($attributes['post_id']));
         }
 
@@ -217,6 +287,14 @@ add_action( 'init', function () {
 
           do_action('acf/render_block', $attributes);
           do_action('acf/render_block/name=' . $attributes['block_name'], $attributes);
+
+          $file_name = $attributes['block_name'] . '.php';
+
+          foreach (['/blocks/acf/' . $file_name, '/blocks/acf-' . $file_name] as $path) {
+            if (file_exists(get_template_directory() . $path)) {
+              include(get_template_directory() . $path);
+            }
+          }
 
           do_action('acf/after_render_block', $attributes);
           do_action('acf/after_render_block/name=' . $attributes['block_name'], $attributes);
@@ -254,6 +332,13 @@ function acf_gb_get_block_field_groups() {
     ];
 
     if ($is_block) {
+      if (!isset($group['block_category']) || !$group['block_category']) {
+        $group['block_category'] = 'widgets';
+      }
+
+      if (isset($group['block_category'])) {
+        $group['block_category_slug'] = sanitize_title($group['block_category']);
+      }
 
       if (acf_get_field_group_visibility($group)) {
         $groups[] = $group;
@@ -310,7 +395,7 @@ add_action('admin_notices', function () {
       title: group.title,
       description: group.description,
       icon: group.block_icon || 'feedback',
-      category: 'widgets',
+      category: group.block_category_slug || 'widgets',
       supports: {
         html: false,
       },
@@ -393,9 +478,13 @@ add_action('admin_notices', function () {
       return res;
     }
 
+    // Publish: method === PUT
+    // Autosave: method === POST 
+
     if ((options.method === 'PUT' || options.method === 'POST') && options.data && options.data.content) {
       $(document).trigger('acb_save_fields');
 
+      /*
       return new Promise(function (resolve, reject) {
         var interval = setInterval(function () {
           if ($('#editor .components-placeholder').length < 1) {
@@ -410,6 +499,9 @@ add_action('admin_notices', function () {
 
         setTimeout(doRequest, 1500);
       });
+      */
+
+      return next(options);
     }
 
     if (options.method !== 'POST' || !(options.body instanceof FormData)) {

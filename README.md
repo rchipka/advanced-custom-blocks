@@ -48,10 +48,11 @@ Download the zipped folder from Github, and then [install manually to Wordpress 
 
 ![screen shot 2018-08-23 at 7 23 33 pm](assets/44556962-49889700-a70a-11e8-89de-b8c6f9693cd8.png) 
 
-3. Insert the hook in your theme's functions.php file. This is where you can define the mark-up structure of the custom Gutenberg block that your fields will be rendered inside of. 
+3. Create `testimonial.php` inside of `/theme_dir/blocks/acf/`
 
    ```
-   <?php
+   <?php // testimonial.php
+   
    add_filter('acf/render_block/name=testimonial', function ($output, $attributes) {
      ob_start();
      ?>
@@ -63,6 +64,29 @@ Download the zipped folder from Github, and then [install manually to Wordpress 
      <?
      return ob_get_clean();
    }, 10, 2);
+   ```
+   
+   Here are the ways in which Advanced Custom Blocks will load block content:
+
+   ```php
+   # Prepend
+   do_action("acf/before_render_block",  $attributes);
+   do_action("acf/before_render_block/name=$block_name", $attributes);
+
+
+   # Block content actions
+   do_action("acf/render_block", $attributes);
+   do_action("acf/render_block/name=$block_name", $attributes);
+
+
+   # Block content templates
+   include(get_template_directory() . "/blocks/acf/$block_name.php");
+   include(get_template_directory() . "/blocks/acf-$block_name.php");
+
+
+   # Append
+   do_action("acf/after_render_block", $attributes);
+   do_action("acf/after_render_block/name=$block_name", $attributes);
    ```
 
 

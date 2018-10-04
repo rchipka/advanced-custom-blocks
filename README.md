@@ -48,7 +48,7 @@ Download the zipped folder from Github, and then [install manually to Wordpress 
 
 ![screen shot 2018-08-23 at 7 23 33 pm](assets/44556962-49889700-a70a-11e8-89de-b8c6f9693cd8.png) 
 
-3. Create `testimonial.php` inside of `/theme_dir/blocks/acf/`
+3. Create `testimonial.php` inside of the `blocks/acf/` directory within your theme
 
    ```
      <div class="testimonial">

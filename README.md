@@ -51,45 +51,13 @@ Download the zipped folder from Github, and then [install manually to Wordpress 
 3. Create `testimonial.php` inside of `/theme_dir/blocks/acf/`
 
    ```
-   <?php // testimonial.php
-   
-   add_filter('acf/render_block/name=testimonial', function ($output, $attributes) {
-     ob_start();
-     ?>
      <div class="testimonial">
        <img src="<? the_field('avatar'); ?>" />
        <h3><? the_field('author'); ?></h3>
        <span><? the_field('testimonial'); ?></span>
      </div>
-     <?
-     return ob_get_clean();
-   }, 10, 2);
    ```
    
-   Here are the ways in which Advanced Custom Blocks will load block content:
-
-   ```php
-   # Prepend
-   do_action("acf/before_render_block",  $attributes);
-   do_action("acf/before_render_block/name=$block_name", $attributes);
-
-
-   # Block content actions
-   do_action("acf/render_block", $attributes);
-   do_action("acf/render_block/name=$block_name", $attributes);
-
-
-   # Block content templates
-   include(get_template_directory() . "/blocks/acf/$block_name.php");
-   include(get_template_directory() . "/blocks/acf-$block_name.php");
-
-
-   # Append
-   do_action("acf/after_render_block", $attributes);
-   do_action("acf/after_render_block/name=$block_name", $attributes);
-   ```
-
-
 
 ## How to use the block
 
@@ -101,6 +69,33 @@ And you can add multiple blocks of the same kind, similar to the repeater field.
 
 ![screen shot 2018-08-23 at 7 21 38 pm](assets/44557063-d4699180-a70a-11e8-8f55-3b8528852361.png) 
 
+
+## Rendering block content
+
+Here are the ways in which Advanced Custom Blocks will load block content:
+
+```php
+# Prepend
+do_action("acf/before_render_block",  $attributes);
+do_action("acf/before_render_block/name=$block_name", $attributes);
+
+
+# Block content actions
+do_action("acf/render_block", $attributes);
+do_action("acf/render_block/name=$block_name", $attributes);
+
+
+# Block content templates
+include(get_template_directory() . "/blocks/acf/$block_name.php");
+include(get_template_directory() . "/blocks/acf-$block_name.php");
+
+
+# Append
+do_action("acf/after_render_block", $attributes);
+do_action("acf/after_render_block/name=$block_name", $attributes);
+```
+
+
 ## Contribute
 
 Please contribute! Just fork this repo and make a pull request. 
@@ -108,12 +103,13 @@ Please contribute! Just fork this repo and make a pull request.
 
 ## TODOs:
 
- * Inject sidebar (block settings) fields via new Plugins API
- * Modify block content using new ServerSideRender component instead of requiring Gutenberg Block Partials?
-
-
+* Create a "Block" field type so that we can have inner blocks as fields
+* Location rules for block placement and quantity restrictions
+* Sidebar positioning for block field groups
 
 ## Credits
+
+See [this thread](https://github.com/elliotcondon/acf/issues/622) for original project discussion.
 
 Project by [Robbie Chipka](https://github.com/rchipka)
 

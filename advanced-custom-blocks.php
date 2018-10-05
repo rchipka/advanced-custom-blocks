@@ -6,7 +6,7 @@
 * Description: ACF for Gutenberg blocks
 * Version: 2.1.3
 * Author: Robbie Chipka
-* Author URI: https://github.com/rchipka
+* Author URI: https://github.com/rchipka`
 * GitHub Plugin URI: https://github.com/rchipka/advanced-custom-blocks
 */
 
@@ -545,5 +545,5 @@ add_action('admin_notices', function () {
 .acf-block-group-content {
 }
 </style>
-<?
+<?php
 }, 0);

@@ -22,19 +22,6 @@ Create custom blocks for the new Wordpress [Gutenberg editor](https://github.com
 ## Motivation
 Make an easy straightforward way for Wordpress developers to create custom Gutenberg blocks using a pipeline they are already familiar with. 
 
-## Key Features
-This plugin adds ACF field group location rules for targeting Gutenburg blocks.
-
-A gutenburg block is currently targeted by type name (`core/paragraph`, `core/latest-posts`, etc.)
-
-Once a block is targeted, the field group will appear when editing the targeted block.
-
-Where the fields appear on the post edit screen is currently determined by the field group's "Location" setting.
-
-- Normal - Fields will appear inside the block, below all other nested content/blocks
-- High (below title) - Fields will appear inside the block, above all other nested content/blocks
-- Side - Fields will appear in the side bar settings under the "Block" tab
-
 ## Installation
 
 Download the zipped folder from Github, and then [install manually to Wordpress via upload](https://themetry.com/docs/install-wordpress-plugin-zip-upload/) in the admin interface. 

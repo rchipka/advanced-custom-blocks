@@ -4,7 +4,7 @@
 * Plugin Name: Advanced Custom Blocks
 * Plugin URI: https://github.com/rchipka/advanced-custom-blocks
 * Description: ACF for Gutenberg blocks
-* Version: 2.1.2
+* Version: 2.1.3
 * Author: Robbie Chipka
 * Author URI: https://github.com/rchipka
 * GitHub Plugin URI: https://github.com/rchipka/advanced-custom-blocks
@@ -207,6 +207,7 @@ add_filter( 'block_categories', function ($block_categories, $post) {
     $slug = sanitize_title($category);
 
     if (!in_array($slug, $block_category_slugs)) {
+      $block_category_slugs[] = $slug;
       $block_categories[] = [
         'slug' => $slug,
         'title' => $category

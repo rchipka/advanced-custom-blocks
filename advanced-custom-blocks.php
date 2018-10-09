@@ -4,7 +4,7 @@
 * Plugin Name: Advanced Custom Blocks
 * Plugin URI: https://github.com/rchipka/advanced-custom-blocks
 * Description: ACF for Gutenberg blocks
-* Version: 2.1.3
+* Version: 2.1.4
 * Author: Robbie Chipka
 * Author URI: https://github.com/rchipka`
 * GitHub Plugin URI: https://github.com/rchipka/advanced-custom-blocks
@@ -55,11 +55,11 @@ add_filter('acf/location/rule_match/block_name', function ( $match, $rule, $opti
 }, 10, 3);
 
 add_filter('acf/location/screen', function ($screen, $field_group) {
-  if (!$field_group['block_name']) {
+  if (!isset($field_group['block_name']) || !$field_group['block_name']) {
     return $screen;
   }
 
-  if (!$screen['post_id']) {
+  if (!isset($screen['post_id']) || !$screen['post_id']) {
     $screen['post_id'] = $_REQUEST['post'] ?: $_REQUEST['post_id'] ?: $_REQUEST['attributes']['post_id'];
   }
 
@@ -323,13 +323,13 @@ function acf_gb_get_block_field_groups() {
 
   $groups = [];
 
-  if ($_REQUEST['post']) {
+  if (isset($_REQUEST['post']) && $_REQUEST['post']) {
     setup_postdata($post = get_post($_REQUEST['post']));
   }
 
   foreach (acf_get_field_groups() as $group) {
     $acb_block = [
-      'block_name' => ($is_block = ($group['block_name'])),
+      'block_name' => ($is_block = (isset($group['block_name']) ?: $group['block_name'])),
     ];
 
     if ($is_block) {

@@ -3,6 +3,9 @@
 // exit if accessed directly
 if( ! defined( 'ABSPATH' ) ) exit;
 
+if( !class_exists('acf_field') ) {
+  return;
+}
 
 // check if class already exists
 if( !class_exists('ACB_acf_field_block') ) :

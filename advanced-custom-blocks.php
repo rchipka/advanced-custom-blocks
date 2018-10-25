@@ -13,6 +13,16 @@
 global $acb_block;
 global $acb_current_field;
 
+include_once('acf-block-field.php');
+
+add_action('acf/include_field_types', function ($version) {
+  if ( $version != 5 ) {
+    return;
+  }
+
+  include_once('acf-block-field.php');
+}, 10, 1);
+
 function acb_current_block($key = null) {
   global $acb_block;
 
@@ -164,6 +174,15 @@ add_filter( 'block_categories', function ($block_categories, $post) {
 
 
 add_action( 'init', function () {
+  register_post_type('acf-child-block', [
+    'label' => 'ACF Block',
+    'labels' => [],
+    'public' => true,
+    'show_in_menu' => false,
+    'capability_type' => 'page',
+    'supports' => array( 'title', 'editor', 'comments', 'thumbnail', 'custom-fields' ),
+  ]);
+
   if (!function_exists('register_block_type')) {
     return;
   }
@@ -199,7 +218,7 @@ add_action( 'init', function () {
         $output = '';
 
         if ($post instanceof WP_Post && $post->ID) {
-          $post_id = $attributes['post_id'] = $post->ID;
+          $attributes['post_id'] = $post->ID;
         } else if ($attributes['post_id']) {
           setup_postdata($post = get_post($attributes['post_id']));
         }
@@ -210,7 +229,7 @@ add_action( 'init', function () {
           acf_disable_cache();
         }
 
-        $attributes['block_meta'] = get_post_meta($post_id, 'block_' . $attributes['block_id'], true);
+        $attributes['block_meta'] = get_post_meta($post_id, '__block_' . $attributes['block_id'], true);
 
         if (!is_array($attributes['block_meta'])) {
           $attributes['block_meta'] = [];
@@ -256,7 +275,7 @@ add_action( 'init', function () {
           //   add_post_meta($post_id, $field['name'], $meta_value, false);
           // }
 
-          update_post_meta($post_id, 'block_' . $block_id, $attributes['block_meta']);
+          update_post_meta($post_id, '__block_' . $block_id, $attributes['block_meta']);
         }
 
         $acb_block = $attributes;
@@ -265,8 +284,12 @@ add_action( 'init', function () {
           ob_start();
           $fields = acf_get_fields($attributes['acf_field_group']);
           acf_render_fields($fields, $attributes['post_id']);
-          $output .= ob_get_contents();
+          $output .= trim(ob_get_contents());
           ob_end_clean();
+
+          if (!$output) {
+            $output = '<div></div>';
+          }
         } else {
           ob_start();
 
@@ -351,7 +374,8 @@ add_action('admin_notices', function () {
     return;
   }
 
-  var groupElements = {},
+  var wp = window.wp,
+      groupElements = {},
       fieldGroups = {},
       fieldGroupForms = {},
       field_groups = <?php echo json_encode(acf_gb_get_block_field_groups()); ?>;

@@ -4,7 +4,7 @@
 * Plugin Name: Advanced Custom Blocks
 * Plugin URI: https://github.com/rchipka/advanced-custom-blocks
 * Description: ACF for Gutenberg blocks
-* Version: 2.1.7
+* Version: 2.1.8
 * Author: Robbie Chipka
 * Author URI: https://github.com/rchipka`
 * GitHub Plugin URI: https://github.com/rchipka/advanced-custom-blocks
@@ -55,8 +55,6 @@ add_filter('acf/location/rule_values/block_name', function ( $choices, $data ) {
 }, 10, 2);
 
 add_filter('acf/location/rule_match/block_name', function ( $match, $rule, $options ) {
-  global $acb_block;
-
   if (empty($rule['value'])) {
     return true;
   }
@@ -452,13 +450,19 @@ add_action('admin_notices', function () {
 
         if ($(selector).length < 1) {
           $(document).on('acb_save_fields', function () {
-            if (block.isSelected) {
-              return;
-            }
+            var tryUpdate = function () {
+              if (block.isSelected || $(selector).is(':hover')) {
+                clearTimeout(block.updateTimeout);
+                block.updateTimeout = setTimeout(tryUpdate, 500);
+                return;
+              }
 
-            block.setAttributes({
-              acf_fields: acf.serialize($(selector))['acf'],
-            });
+              block.setAttributes({
+                acf_fields: acf.serialize($(selector))['acf'],
+              });
+            };
+
+            setTimeout(tryUpdate, 250);
           });
         }
         // setTimeout(function () {
@@ -490,7 +494,7 @@ add_action('admin_notices', function () {
       res.then(function () {
         setTimeout(function () {
           $('[data-block-id]').each(function () {
-            acf.do_action('ready', $(this));
+            acf.do_action('append', $(this));
           });
         }, 500);
       });

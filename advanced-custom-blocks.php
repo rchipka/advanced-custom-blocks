@@ -4,7 +4,7 @@
 * Plugin Name: Advanced Custom Blocks
 * Plugin URI: https://github.com/rchipka/advanced-custom-blocks
 * Description: ACF for Gutenberg blocks
-* Version: 2.1.9
+* Version: 2.2.0
 * Author: Robbie Chipka
 * Author URI: https://github.com/rchipka`
 * GitHub Plugin URI: https://github.com/rchipka/advanced-custom-blocks
@@ -218,7 +218,8 @@ add_action( 'init', function () {
         if ($post instanceof WP_Post && $post->ID) {
           $post_id = $attributes['post_id'] = $post->ID;
         } else if ($attributes['post_id']) {
-          setup_postdata($post = get_post($attributes['post_id']));
+          $post_id = intval($attributes['post_id']);
+          setup_postdata($post = get_post($post_id));
         }
 
         $cache_active = acf_is_cache_active();

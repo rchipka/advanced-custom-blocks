@@ -4,7 +4,7 @@
 * Plugin Name: Advanced Custom Blocks
 * Plugin URI: https://github.com/rchipka/advanced-custom-blocks
 * Description: ACF for Gutenberg blocks
-* Version: 2.2.1
+* Version: 2.2.2
 * Author: Robbie Chipka
 * Author URI: https://github.com/rchipka`
 * GitHub Plugin URI: https://github.com/rchipka/advanced-custom-blocks
@@ -452,7 +452,7 @@ add_action('admin_notices', function () {
         if ($(selector).length < 1) {
           $(document).on('acb_save_fields', function () {
             var tryUpdate = function () {
-              if (block.isSelected || $(selector).is(':hover')) {
+              if (block.isSelected || $(selector).is(':hover') || $('#wp-link-wrap, #wp-link-backdrop').is(':hover')) {
                 clearTimeout(block.updateTimeout);
                 block.updateTimeout = setTimeout(tryUpdate, 500);
                 return;
